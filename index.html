@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Waves 🌊 — Drinking Game</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f0f1a;
+      --surface: #1a1a2e;
+      --surface2: #16213e;
+      --accent: #e94560;
+      --accent2: #0f3460;
+      --accent3: #533483;
+      --gold: #f5a623;
+      --text: #e0e0e0;
+      --muted: #888;
+      --radius: 16px;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* ---- HEADER ---- */
+    header {
+      width: 100%;
+      padding: 20px 24px 12px;
+      text-align: center;
+      background: linear-gradient(135deg, var(--surface2), var(--surface));
+      border-bottom: 2px solid var(--accent2);
+    }
+    header h1 {
+      font-size: 2.4rem;
+      letter-spacing: 2px;
+      background: linear-gradient(90deg, #e94560, #a855f7, #3b82f6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    header p { color: var(--muted); font-size: 0.9rem; margin-top: 4px; }
+
+    /* ---- MAIN LAYOUT ---- */
+    main {
+      width: 100%;
+      max-width: 860px;
+      padding: 24px 16px 40px;
+    }
+
+    /* ---- SCOREBOARD ---- */
+    .scoreboard {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 28px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .player-card {
+      flex: 1;
+      min-width: 160px;
+      max-width: 240px;
+      background: var(--surface);
+      border: 2px solid var(--accent2);
+      border-radius: var(--radius);
+      padding: 16px;
+      text-align: center;
+      transition: border-color 0.25s, transform 0.2s;
+      position: relative;
+    }
+    .player-card.active {
+      border-color: var(--accent);
+      transform: translateY(-4px);
+      box-shadow: 0 8px 24px rgba(233,69,96,0.3);
+    }
+    .player-card .crown {
+      position: absolute;
+      top: -14px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 1.4rem;
+      display: none;
+    }
+    .player-card.least-drinks .crown { display: block; }
+    .player-avatar {
+      font-size: 2.4rem;
+      margin-bottom: 6px;
+    }
+    .player-name {
+      font-weight: 700;
+      font-size: 1.05rem;
+      margin-bottom: 8px;
+      cursor: pointer;
+    }
+    .player-name:hover { color: var(--accent); }
+    .player-name input {
+      background: transparent;
+      border: none;
+      border-bottom: 1px solid var(--accent);
+      color: var(--text);
+      font-size: 1.05rem;
+      font-weight: 700;
+      width: 100%;
+      text-align: center;
+      outline: none;
+    }
+    .drink-count {
+      font-size: 1.9rem;
+      font-weight: 800;
+      color: var(--accent);
+    }
+    .drink-label { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+    .btn-drink {
+      margin-top: 10px;
+      background: var(--accent2);
+      color: var(--text);
+      border: none;
+      border-radius: 8px;
+      padding: 6px 14px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      transition: background 0.2s;
+    }
+    .btn-drink:hover { background: var(--accent3); }
+
+    /* ---- GAME TABS ---- */
+    .tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .tab {
+      background: var(--surface);
+      border: 2px solid var(--accent2);
+      color: var(--muted);
+      border-radius: 10px;
+      padding: 8px 18px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+    .tab.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+    .tab:hover:not(.active) { border-color: var(--accent3); color: var(--text); }
+
+    /* ---- GAME PANELS ---- */
+    .game-panel { display: none; }
+    .game-panel.visible { display: block; }
+
+    .card-area {
+      background: var(--surface);
+      border: 2px solid var(--accent2);
+      border-radius: var(--radius);
+      padding: 32px 28px;
+      text-align: center;
+      min-height: 200px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+    }
+    .card-area .turn-indicator {
+      font-size: 0.85rem;
+      color: var(--gold);
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+    .card-area .question-text {
+      font-size: 1.5rem;
+      font-weight: 700;
+      line-height: 1.4;
+      max-width: 560px;
+    }
+    .card-area .sub-text {
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), var(--accent3));
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      padding: 14px 36px;
+      font-size: 1.1rem;
+      font-weight: 700;
+      cursor: pointer;
+      letter-spacing: 0.5px;
+      transition: opacity 0.2s, transform 0.1s;
+      box-shadow: 0 4px 16px rgba(233,69,96,0.35);
+    }
+    .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+    .btn-primary:active { transform: translateY(1px); }
+
+    .btn-secondary {
+      background: var(--surface2);
+      color: var(--text);
+      border: 2px solid var(--accent2);
+      border-radius: 12px;
+      padding: 10px 24px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* Would You Rather options */
+    .wyr-options {
+      display: flex;
+      gap: 12px;
+      width: 100%;
+      max-width: 600px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .wyr-btn {
+      flex: 1;
+      min-width: 200px;
+      background: var(--accent2);
+      color: var(--text);
+      border: 2px solid transparent;
+      border-radius: 12px;
+      padding: 16px 18px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      line-height: 1.4;
+    }
+    .wyr-btn:hover { border-color: var(--accent); background: var(--accent3); }
+    .wyr-btn.chosen { border-color: var(--gold); background: rgba(245,166,35,0.15); color: var(--gold); }
+    .wyr-drink-msg { color: var(--accent); font-weight: 700; font-size: 1.1rem; }
+
+    /* Wheel */
+    .wheel-container {
+      position: relative;
+      width: 260px;
+      height: 260px;
+      margin: 0 auto 20px;
+    }
+    #wheel-canvas { border-radius: 50%; }
+    .wheel-arrow {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 1.8rem;
+      pointer-events: none;
+      text-shadow: 0 2px 6px #000;
+    }
+
+    /* Kings Cup */
+    .kc-deck {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      margin-bottom: 20px;
+      max-width: 600px;
+    }
+    .kc-card {
+      width: 52px;
+      height: 72px;
+      background: linear-gradient(135deg, #1e3a5f, #0f2040);
+      border: 2px solid var(--accent2);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+      user-select: none;
+    }
+    .kc-card:hover:not(.flipped) {
+      border-color: var(--accent);
+      transform: translateY(-4px);
+    }
+    .kc-card.flipped {
+      background: var(--surface2);
+      cursor: default;
+      color: var(--muted);
+      font-size: 0.75rem;
+    }
+    .kc-card.flipped.red { color: #ef4444; }
+    .kc-rule-box {
+      background: var(--surface2);
+      border: 2px solid var(--accent3);
+      border-radius: var(--radius);
+      padding: 20px 24px;
+      margin-bottom: 20px;
+      min-height: 80px;
+    }
+    .kc-rule-box h3 { color: var(--gold); margin-bottom: 8px; font-size: 1.1rem; }
+    .kc-rule-box p { font-size: 1rem; line-height: 1.5; }
+
+    /* Animations */
+    @keyframes pop {
+      0% { transform: scale(0.7); opacity: 0; }
+      70% { transform: scale(1.08); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .pop { animation: pop 0.35s ease forwards; }
+
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      20%,60% { transform: translateX(-6px); }
+      40%,80% { transform: translateX(6px); }
+    }
+    .shake { animation: shake 0.4s ease; }
+
+    /* Reset section */
+    .reset-row {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin-top: 24px;
+      flex-wrap: wrap;
+    }
+
+    /* Rules legend */
+    .rules-legend {
+      background: var(--surface);
+      border: 1px solid var(--accent2);
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      margin-top: 20px;
+    }
+    .rules-legend h3 { margin-bottom: 12px; color: var(--gold); }
+    .rules-legend ul { list-style: none; display: grid; grid-template-columns: 1fr 1fr; gap: 6px 16px; }
+    .rules-legend li { font-size: 0.82rem; color: var(--muted); }
+    .rules-legend li strong { color: var(--text); }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>🌊 WAVES</h1>
+  <p>A drinking game for 3 good friends</p>
+</header>
+
+<main>
+
+  <!-- SCOREBOARD -->
+  <div class="scoreboard" id="scoreboard"></div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('truth')">🔥 Truth or Drink</button>
+    <button class="tab" onclick="switchTab('never')">🙈 Never Have I Ever</button>
+    <button class="tab" onclick="switchTab('wyr')">🤔 Would You Rather</button>
+    <button class="tab" onclick="switchTab('wheel')">🎡 Spin the Wheel</button>
+    <button class="tab" onclick="switchTab('kings')">👑 Kings Cup</button>
+  </div>
+
+  <!-- TRUTH OR DRINK -->
+  <div class="game-panel visible" id="panel-truth">
+    <div class="card-area" id="truth-card">
+      <div class="turn-indicator" id="truth-turn">Player 1's Turn</div>
+      <div class="question-text" id="truth-question">Press the button to get a question!</div>
+      <div class="sub-text">Answer truthfully — or take a drink 🍺</div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;">
+        <button class="btn-primary" onclick="nextTruth()">🎲 New Question</button>
+        <button class="btn-secondary" onclick="drinkCurrent('truth')">😵 I'll Drink Instead</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- NEVER HAVE I EVER -->
+  <div class="game-panel" id="panel-never">
+    <div class="card-area" id="never-card">
+      <div class="turn-indicator" id="never-turn">Player 1's Turn</div>
+      <div class="question-text" id="never-question">Press the button for a statement!</div>
+      <div class="sub-text">Everyone who HAS done it — takes a drink 🍻</div>
+      <button class="btn-primary" onclick="nextNever()">🎲 New Statement</button>
+    </div>
+    <div class="reset-row">
+      <p style="color:var(--muted);font-size:0.85rem;align-self:center;">Tap a player's drink count below to add drinks manually</p>
+    </div>
+  </div>
+
+  <!-- WOULD YOU RATHER -->
+  <div class="game-panel" id="panel-wyr">
+    <div class="card-area" id="wyr-card">
+      <div class="turn-indicator" id="wyr-turn">Player 1's Turn</div>
+      <div class="question-text" id="wyr-question">Press the button to get a dilemma!</div>
+      <div class="sub-text">Pick one… or take a drink 🍷</div>
+      <div class="wyr-options" id="wyr-options" style="display:none"></div>
+      <button class="btn-primary" id="wyr-btn" onclick="nextWYR()">🎲 New Dilemma</button>
+    </div>
+  </div>
+
+  <!-- SPIN THE WHEEL -->
+  <div class="game-panel" id="panel-wheel">
+    <div class="card-area">
+      <div class="turn-indicator" id="wheel-turn">Player 1's Turn</div>
+      <div class="wheel-container">
+        <canvas id="wheel-canvas" width="260" height="260"></canvas>
+        <div class="wheel-arrow">⬆️</div>
+      </div>
+      <div class="question-text" id="wheel-result" style="font-size:1.1rem;">Spin the wheel for a challenge!</div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;">
+        <button class="btn-primary" onclick="spinWheel()">🎡 SPIN!</button>
+        <button class="btn-secondary" onclick="nextWheelTurn()">➡️ Skip Turn</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- KINGS CUP -->
+  <div class="game-panel" id="panel-kings">
+    <div class="kc-rule-box" id="kc-rule-box">
+      <h3 id="kc-card-title">👑 Kings Cup</h3>
+      <p id="kc-rule-text">Tap any face-down card to reveal its rule. The player whose turn it is must follow the rule — or drink!</p>
+    </div>
+    <div class="kc-deck" id="kc-deck"></div>
+    <div class="reset-row">
+      <button class="btn-secondary" onclick="resetKings()">🔄 New Deck</button>
+    </div>
+    <div class="rules-legend">
+      <h3>Card Rules</h3>
+      <ul id="kc-legend"></ul>
+    </div>
+  </div>
+
+  <div class="reset-row">
+    <button class="btn-secondary" onclick="resetScores()">🔄 Reset Drinks</button>
+    <button class="btn-secondary" onclick="resetNames()">✏️ Edit Names</button>
+  </div>
+
+</main>
+
+<script>
+// ===================== STATE =====================
+const DEFAULT_NAMES = ['Alex', 'Jordan', 'Sam'];
+const AVATARS = ['🦊', '🐻', '🦁'];
+
+let players = JSON.parse(localStorage.getItem('wv_players') || 'null') || [
+  { name: DEFAULT_NAMES[0], drinks: 0 },
+  { name: DEFAULT_NAMES[1], drinks: 0 },
+  { name: DEFAULT_NAMES[2], drinks: 0 }
+];
+let currentPlayer = 0; // index into players array
+
+// ===================== SCOREBOARD =====================
+function renderScoreboard() {
+  const sb = document.getElementById('scoreboard');
+  const minDrinks = Math.min(...players.map(p => p.drinks));
+  sb.innerHTML = '';
+  players.forEach((p, i) => {
+    const card = document.createElement('div');
+    card.className = 'player-card' +
+      (i === currentPlayer ? ' active' : '') +
+      (p.drinks === minDrinks && p.drinks >= 0 ? ' least-drinks' : '');
+    card.innerHTML = `
+      <div class="crown">👑</div>
+      <div class="player-avatar">${AVATARS[i]}</div>
+      <div class="player-name" id="name-display-${i}" onclick="editName(${i})">${p.name}</div>
+      <div class="drink-count" id="drinks-${i}">${p.drinks}</div>
+      <div class="drink-label">drinks</div>
+      <button class="btn-drink" onclick="addDrink(${i})">+1 Drink</button>
+    `;
+    sb.appendChild(card);
+  });
+  savePlayers();
+}
+
+function editName(i) {
+  const display = document.getElementById(`name-display-${i}`);
+  display.innerHTML = `<input type="text" value="${players[i].name}" maxlength="12"
+    onblur="saveName(${i}, this.value)"
+    onkeydown="if(event.key==='Enter') this.blur()"
+    autofocus />`;
+  display.querySelector('input').select();
+}
+function saveName(i, val) {
+  players[i].name = val.trim() || DEFAULT_NAMES[i];
+  updateTurnIndicators();
+  renderScoreboard();
+}
+function resetNames() {
+  players.forEach((p, i) => p.name = DEFAULT_NAMES[i]);
+  updateTurnIndicators();
+  renderScoreboard();
+}
+
+function addDrink(i) {
+  players[i].drinks++;
+  const el = document.getElementById(`drinks-${i}`);
+  el.classList.remove('shake');
+  void el.offsetWidth;
+  el.classList.add('shake');
+  renderScoreboard();
+}
+
+function resetScores() {
+  players.forEach(p => p.drinks = 0);
+  renderScoreboard();
+}
+
+function savePlayers() {
+  localStorage.setItem('wv_players', JSON.stringify(players));
+}
+
+// ===================== TURN MANAGEMENT =====================
+function advanceTurn() {
+  currentPlayer = (currentPlayer + 1) % 3;
+  updateTurnIndicators();
+  renderScoreboard();
+}
+
+function updateTurnIndicators() {
+  const name = players[currentPlayer].name;
+  ['truth','never','wyr','wheel'].forEach(id => {
+    const el = document.getElementById(`${id}-turn`);
+    if (el) el.textContent = `${name}'s Turn`;
+  });
+}
+
+function drinkCurrent(game) {
+  addDrink(currentPlayer);
+  advanceTurn();
+}
+
+// ===================== TABS =====================
+function switchTab(name) {
+  document.querySelectorAll('.game-panel').forEach(p => p.classList.remove('visible'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(`panel-${name}`).classList.add('visible');
+  event.target.classList.add('active');
+  updateTurnIndicators();
+}
+
+// ===================== TRUTH OR DRINK =====================
+const TRUTHS = [
+  "What's the most embarrassing thing you've done sober?",
+  "Have you ever lied to get out of plans with someone in this room?",
+  "What's the last thing you searched on your phone?",
+  "What's your most irrational fear?",
+  "Have you ever blamed something on a pet that was actually your fault?",
+  "What's the worst gift you've ever received?",
+  "What's your most embarrassing childhood memory?",
+  "Have you ever pretended to be sick to avoid something?",
+  "What's the pettiest thing you've ever done?",
+  "Have you ever ghosted someone? Why?",
+  "What's the longest you've gone without showering?",
+  "Have you ever eaten food off the floor?",
+  "What's the worst lie you've told your parents?",
+  "Have you ever accidentally liked an old post while stalking someone?",
+  "What's your guilty pleasure song?",
+  "Have you ever cried at a commercial?",
+  "What's the most childish thing you still do?",
+  "What's a secret you've kept from your best friend?",
+  "Have you ever cheated at a board game?",
+  "What's your most embarrassing drunk story?",
+  "Have you ever sent a text to the wrong person?",
+  "What's something you've never told anyone in this room?",
+  "Have you ever pretended not to see someone in public?",
+  "What's the most money you've spent on something totally stupid?",
+  "Have you ever walked into a wall or door sober?",
+  "What's the dumbest argument you've ever gotten into?",
+  "Have you ever stolen something, even something tiny?",
+  "What's your biggest regret from last year?",
+  "Have you ever talked trash about someone in this room?",
+  "What's the weirdest dream you can remember?",
+];
+
+let usedTruths = [];
+let truthIndex = 0;
+
+function nextTruth() {
+  const card = document.getElementById('truth-card');
+  card.classList.remove('pop');
+  void card.offsetWidth;
+  card.classList.add('pop');
+
+  if (usedTruths.length >= TRUTHS.length) usedTruths = [];
+  let idx;
+  do { idx = Math.floor(Math.random() * TRUTHS.length); } while (usedTruths.includes(idx));
+  usedTruths.push(idx);
+
+  document.getElementById('truth-question').textContent = TRUTHS[idx];
+  advanceTurn();
+}
+
+// ===================== NEVER HAVE I EVER =====================
+const NEVERS = [
+  "Never have I ever… fallen asleep on public transport and missed my stop.",
+  "Never have I ever… texted someone and immediately regretted it.",
+  "Never have I ever… eaten an entire pizza by myself.",
+  "Never have I ever… lied about watching a movie to fit in.",
+  "Never have I ever… broken something and blamed someone else.",
+  "Never have I ever… stayed in a job/school I hated just for the money/title.",
+  "Never have I ever… faked being busy to avoid replying to someone.",
+  "Never have I ever… laughed at someone falling, even though I shouldn't have.",
+  "Never have I ever… pretended to know a song I'd never heard.",
+  "Never have I ever… Googled myself.",
+  "Never have I ever… cried during an animated movie.",
+  "Never have I ever… stayed in a relationship longer than I should have.",
+  "Never have I ever… accidentally called a teacher 'Mum' or 'Dad'.",
+  "Never have I ever… sent a voice note and immediately wished I hadn't.",
+  "Never have I ever… bought something expensive on impulse and hidden it.",
+  "Never have I ever… stayed up all night and then lied about sleeping fine.",
+  "Never have I ever… memorised song lyrics but can't remember important dates.",
+  "Never have I ever… ordered something weird at a restaurant to seem adventurous.",
+  "Never have I ever… drunk-dialled someone I shouldn't have.",
+  "Never have I ever… pretended to enjoy small talk when I hated every second.",
+  "Never have I ever… binge-watched an entire season in one sitting.",
+  "Never have I ever… worn the same outfit two days in a row (minus gym clothes).",
+  "Never have I ever… taken someone else's food from the fridge.",
+  "Never have I ever… had a crush on a fictional character.",
+  "Never have I ever… made up an excuse to leave a party early.",
+];
+
+let usedNevers = [];
+
+function nextNever() {
+  const card = document.getElementById('never-card');
+  card.classList.remove('pop');
+  void card.offsetWidth;
+  card.classList.add('pop');
+
+  if (usedNevers.length >= NEVERS.length) usedNevers = [];
+  let idx;
+  do { idx = Math.floor(Math.random() * NEVERS.length); } while (usedNevers.includes(idx));
+  usedNevers.push(idx);
+
+  document.getElementById('never-question').textContent = NEVERS[idx];
+  advanceTurn();
+}
+
+// ===================== WOULD YOU RATHER =====================
+const WYRS = [
+  ["Only be able to whisper for the rest of your life", "Only be able to shout for the rest of your life"],
+  ["Know when you're going to die", "Know how you're going to die"],
+  ["Have to dance every time you hear music", "Sing out loud whenever you're happy"],
+  ["Eat only spicy food forever", "Eat only bland food forever"],
+  ["Always be 10 minutes late", "Always be 20 minutes early"],
+  ["Have a rewind button for your life", "Have a pause button for your life"],
+  ["Be able to read minds but only hear insults", "Be invisible but only when no one's looking"],
+  ["Never use social media again", "Never watch TV/Netflix again"],
+  ["Always say what you're thinking", "Never be able to say what you're thinking"],
+  ["Fight one horse-sized duck", "Fight 100 duck-sized horses"],
+  ["Lose all your memories from the past", "Never be able to make new ones"],
+  ["Be the funniest person in the room", "Be the most attractive person in the room"],
+  ["Have an incredibly annoying ringtone you can't change", "Have an alarm that goes off randomly once a day"],
+  ["Never eat your favourite food again", "Only eat your favourite food forever"],
+  ["Live without music", "Live without movies/TV"],
+  ["Always feel like you're being watched", "Always feel like you're forgetting something"],
+  ["Be fluent in all languages", "Be amazing at every instrument"],
+  ["Have to wear a clown costume to every important event", "Speak in rhymes for one hour every day"],
+  ["Know all the spoilers for everything", "Never know any spoilers but never finish anything"],
+  ["Drink a pint of hot sauce", "Eat a raw onion whole like an apple"],
+];
+
+let usedWYRs = [];
+let wyrChosen = false;
+
+function nextWYR() {
+  wyrChosen = false;
+  const card = document.getElementById('wyr-card');
+  card.classList.remove('pop');
+  void card.offsetWidth;
+  card.classList.add('pop');
+
+  if (usedWYRs.length >= WYRS.length) usedWYRs = [];
+  let idx;
+  do { idx = Math.floor(Math.random() * WYRS.length); } while (usedWYRs.includes(idx));
+  usedWYRs.push(idx);
+
+  const pair = WYRS[idx];
+  document.getElementById('wyr-question').textContent = 'Would you rather…';
+
+  const optContainer = document.getElementById('wyr-options');
+  optContainer.style.display = 'flex';
+  optContainer.innerHTML = `
+    <button class="wyr-btn" onclick="wyrPick(this, 0)">${pair[0]}</button>
+    <button class="wyr-btn" onclick="wyrPick(this, 1)">${pair[1]}</button>
+  `;
+
+  document.getElementById('wyr-btn').textContent = '🎲 New Dilemma';
+  advanceTurn();
+}
+
+function wyrPick(btn, choice) {
+  if (wyrChosen) return;
+  wyrChosen = true;
+  document.querySelectorAll('.wyr-btn').forEach(b => b.classList.remove('chosen'));
+  btn.classList.add('chosen');
+  const msg = document.createElement('div');
+  msg.className = 'wyr-drink-msg pop';
+  msg.textContent = '✅ Bold choice! No drink needed.';
+  const opts = document.getElementById('wyr-options');
+  const existing = opts.nextElementSibling;
+  if (existing && existing.classList.contains('wyr-drink-msg')) existing.remove();
+  opts.insertAdjacentElement('afterend', msg);
+}
+
+// ===================== SPIN THE WHEEL =====================
+const WHEEL_SEGMENTS = [
+  { label: 'Take 1 sip', color: '#e94560', drinks: 1 },
+  { label: 'Take 2 sips', color: '#533483', drinks: 2 },
+  { label: 'Waterfall!', color: '#0f3460', drinks: 1 },
+  { label: 'Give 2 sips', color: '#3b82f6', drinks: 0 },
+  { label: 'Everyone drinks', color: '#059669', drinks: 1 },
+  { label: 'Rule Maker', color: '#d97706', drinks: 0 },
+  { label: 'Take 3 sips', color: '#7c3aed', drinks: 3 },
+  { label: 'Give 1 sip', color: '#dc2626', drinks: 0 },
+];
+
+const WHEEL_RULES = {
+  'Waterfall!': 'Start drinking — everyone must keep drinking until the person to your left stops!',
+  'Everyone drinks': 'All players take a sip together!',
+  'Rule Maker': 'Make a new rule. Anyone who breaks it during the game drinks!',
+  'Give 1 sip': 'Choose any player to take 1 sip.',
+  'Give 2 sips': 'Distribute 2 sips among the players however you like.',
+  'Take 1 sip': 'Take 1 sip.',
+  'Take 2 sips': 'Take 2 sips.',
+  'Take 3 sips': 'Take 3 sips — ouch!',
+};
+
+let wheelSpinning = false;
+let wheelAngle = 0;
+
+function drawWheel(angle) {
+  const canvas = document.getElementById('wheel-canvas');
+  const ctx = canvas.getContext('2d');
+  const cx = 130, cy = 130, r = 120;
+  const n = WHEEL_SEGMENTS.length;
+  const slice = (Math.PI * 2) / n;
+
+  ctx.clearRect(0, 0, 260, 260);
+  WHEEL_SEGMENTS.forEach((seg, i) => {
+    const start = angle + i * slice;
+    const end = start + slice;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, r, start, end);
+    ctx.fillStyle = seg.color;
+    ctx.fill();
+    ctx.strokeStyle = '#0f0f1a';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(start + slice / 2);
+    ctx.textAlign = 'right';
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 12px Segoe UI, sans-serif';
+    ctx.fillText(seg.label, r - 8, 5);
+    ctx.restore();
+  });
+
+  // Center circle
+  ctx.beginPath();
+  ctx.arc(cx, cy, 20, 0, Math.PI * 2);
+  ctx.fillStyle = '#0f0f1a';
+  ctx.fill();
+}
+
+function spinWheel() {
+  if (wheelSpinning) return;
+  wheelSpinning = true;
+  document.getElementById('wheel-result').textContent = 'Spinning…';
+  const extra = Math.PI * 2 * (5 + Math.random() * 5);
+  const target = wheelAngle + extra;
+  const duration = 3500;
+  const start = performance.now();
+  const startAngle = wheelAngle;
+
+  function easeOut(t) { return 1 - Math.pow(1 - t, 4); }
+
+  function frame(now) {
+    const elapsed = now - start;
+    const progress = Math.min(elapsed / duration, 1);
+    wheelAngle = startAngle + extra * easeOut(progress);
+    drawWheel(wheelAngle);
+    if (progress < 1) {
+      requestAnimationFrame(frame);
+    } else {
+      wheelSpinning = false;
+      const n = WHEEL_SEGMENTS.length;
+      const slice = (Math.PI * 2) / n;
+      // Arrow points upward = -π/2; normalize angle
+      const normalized = ((- wheelAngle - Math.PI / 2) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
+      const idx = Math.floor(normalized / slice) % n;
+      const seg = WHEEL_SEGMENTS[idx];
+      const rule = WHEEL_RULES[seg.label] || '';
+      document.getElementById('wheel-result').textContent = `🎯 ${seg.label} — ${rule}`;
+      if (seg.drinks > 0) addDrink(currentPlayer);
+      advanceTurn();
+    }
+  }
+  requestAnimationFrame(frame);
+}
+
+function nextWheelTurn() { advanceTurn(); }
+
+// ===================== KINGS CUP =====================
+const KC_RULES = {
+  'A': { name: 'Ace — Waterfall', rule: 'Everyone starts drinking. You can only stop when the person to your right stops.' },
+  '2': { name: '2 — You', rule: 'Pick someone to take 2 sips.' },
+  '3': { name: '3 — Me', rule: 'You take 3 sips.' },
+  '4': { name: '4 — Floor', rule: 'Last person to touch the floor takes a drink!' },
+  '5': { name: '5 — Guys', rule: 'All people who identify as guys drink.' },
+  '6': { name: '6 — Chicks', rule: 'All people who identify as ladies drink.' },
+  '7': { name: '7 — Heaven', rule: 'Point to the ceiling. Last one to point drinks!' },
+  '8': { name: '8 — Mate', rule: 'Pick a drinking buddy. Whenever you drink, they drink too (until next 8).' },
+  '9': { name: '9 — Rhyme', rule: 'Say a word. Go around — each person must rhyme. First to fail drinks.' },
+  '10': { name: '10 — Categories', rule: 'Pick a category (e.g. car brands). Go around. First to fail drinks.' },
+  'J': { name: 'Jack — Rule', rule: 'Make a rule that lasts the whole game. Breaking it = drink.' },
+  'Q': { name: 'Queen — Questions', rule: 'Ask anyone a question. They answer with a question. First to answer normally drinks.' },
+  'K': { name: 'King — Pour', rule: 'Pour some of your drink into the Kings Cup. The 4th King drinker must down the whole cup!' },
+};
+
+const SUITS = ['♠', '♥', '♦', '♣'];
+const RANKS = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+
+let kcDeck = [];
+let kcFlipped = [];
+
+function buildDeck() {
+  kcDeck = [];
+  SUITS.forEach(suit => RANKS.forEach(rank => kcDeck.push({ rank, suit })));
+  // Shuffle
+  for (let i = kcDeck.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [kcDeck[i], kcDeck[j]] = [kcDeck[j], kcDeck[i]];
+  }
+  kcFlipped = new Array(kcDeck.length).fill(false);
+}
+
+function renderKCDeck() {
+  const container = document.getElementById('kc-deck');
+  container.innerHTML = '';
+  kcDeck.forEach((card, i) => {
+    const el = document.createElement('div');
+    const isRed = card.suit === '♥' || card.suit === '♦';
+    el.className = 'kc-card' + (kcFlipped[i] ? ' flipped' + (isRed ? ' red' : '') : '');
+    el.textContent = kcFlipped[i] ? `${card.rank}${card.suit}` : '🂠';
+    if (!kcFlipped[i]) el.onclick = () => flipKCCard(i);
+    container.appendChild(el);
+  });
+}
+
+function flipKCCard(i) {
+  kcFlipped[i] = true;
+  const card = kcDeck[i];
+  const rule = KC_RULES[card.rank];
+  document.getElementById('kc-card-title').textContent = `${card.rank}${card.suit} — ${rule.name}`;
+  document.getElementById('kc-rule-text').textContent = rule.rule;
+  renderKCDeck();
+  advanceTurn();
+}
+
+function resetKings() {
+  buildDeck();
+  renderKCDeck();
+  document.getElementById('kc-card-title').textContent = '👑 Kings Cup';
+  document.getElementById('kc-rule-text').textContent = 'Tap any face-down card to reveal its rule. The player whose turn it is must follow the rule — or drink!';
+}
+
+function buildLegend() {
+  const ul = document.getElementById('kc-legend');
+  Object.entries(KC_RULES).forEach(([rank, data]) => {
+    const li = document.createElement('li');
+    li.innerHTML = `<strong>${rank}:</strong> ${data.name.split('—')[1]?.trim() || data.name}`;
+    ul.appendChild(li);
+  });
+}
+
+// ===================== INIT =====================
+drawWheel(0);
+buildDeck();
+renderKCDeck();
+buildLegend();
+renderScoreboard();
+updateTurnIndicators();
+</script>
+</body>
+</html>
